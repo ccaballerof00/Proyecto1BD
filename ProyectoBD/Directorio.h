@@ -18,10 +18,7 @@ private:
 
 
 public:
-    Directorio()
-    {
 
-    }
     Directorio(int ProfundidadGlobal) {
 
         this->ProfundidadGlobal = ProfundidadGlobal;
@@ -225,6 +222,7 @@ public:
         return keyFinal;
     }
 
+
     void insert(int key, Empleado registro) {
 
 
@@ -236,14 +234,14 @@ public:
         for (int i = 0; i < this->ProfundidadGlobal; i++) {
             temp[i] = '0';
         }
-/*
-        for (int i = 0; i < this->ProfundidadGlobal; i++) {
-            temp[i] = KeyEnBinario[i];
 
-            if (KeyEnBinario[i] == this->ProfundidadGlobal) {
-                temp[i] = '0';
+
+        for (int i = 0; i <= this->ProfundidadGlobal; i++) {
+            if ( KeyEnBinario[i] == NULL) {
+                break;
             }
-        }*/
+            temp[i] = KeyEnBinario[i];
+        }
 
         char temp2[this->ProfundidadGlobal];
 
@@ -251,6 +249,13 @@ public:
             temp2[x] = temp[y];
         }
 
+
+
+
+
+
+
+        //Itero los indices para compararlo a que bucket meterlo
 
         for (auto it = this->index.begin(); it != this->index.end(); ++it) {
 
@@ -352,8 +357,6 @@ public:
                                     }
                                     if (temp2[i] == NULL) {
 
-
-
                                         //Escribo el record
                                         Bfile.seekg(0, ios::end);
                                         Bfile.write((char *) &registro, sizeof(Empleado));
@@ -454,89 +457,114 @@ public:
             else {
                 int pos = 0;
 
-                for (auto it2 = 0; it2 < it->second.size(); it2++) {
-
+                //Veo si el valor del indice es igual al
+                for(auto i = 0; i < it->second.size(); i++){
                     if (it->second[pos] == temp2[pos]) {
                         pos++;
                         continue;
                     }
+                    else{
+                        break;
+                    }
+                }
 
-                    if (pos == (this->ProfundidadGlobal-1)) {
+                if(pos == this->ProfundidadGlobal){
 
-                        if (this->buckets.empty()) {
+                    if (this->buckets.empty()) {
 
-                            //Crear el bucker y escribir donde esta pauntando
-                            auto NuevoBucket = new Bucket();
+                        //Crear el bucker y escribir donde esta pauntando
+                        auto NuevoBucket = new Bucket();
 
-                            auto NombreBucket = NuevoBucket->GetBucketFileName();
+                        auto NombreBucket = NuevoBucket->GetBucketFileName();
+
+                        fstream Bfile;
+                        Bfile.open(NombreBucket, ios::binary | ios::out);
+
+                        if (Bfile.is_open()) {
+
+
+                            Bfile.seekg( 8 + ( this->ProfundidadGlobal * sizeof(int) ) , ios::beg);
+
+                            Bfile.write((char *) &temp2, sizeof(this->ProfundidadGlobal));
+
+                            Bfile.seekg(0, ios::end);
+
+                            Bfile.write((char *) &registro, sizeof(Empleado));
+
+                        }
+
+                        Bfile.close();
+                        buckets.push_back(NuevoBucket);
+
+                }
+                    else{
+                        for (auto it2 = buckets.begin(); it2 < buckets.end(); it2++) {
+
+
+                            auto NombreBucket = (*it2)->GetBucketFileName();
 
                             fstream Bfile;
-                            Bfile.open(NombreBucket, ios::binary | ios::in | ios::out);
+                            Bfile.open(NombreBucket, ios::binary| ios::in | ios::out);
 
                             if (Bfile.is_open()) {
 
-                                Bfile.seekg(0, ios::beg);
+                                char lecturaIndex[ProfundidadGlobal];
 
-                                Bfile.seekg(NuevoBucket->GetProfundidadLocal() * sizeof(int) +
-                                            sizeof(this->ProfundidadGlobal), ios::beg);
+                                Bfile.seekg(8 , ios::beg);
 
-                                Bfile.write((char *) &temp2, sizeof(this->ProfundidadGlobal));
+                                Bfile.read((char *) &lecturaIndex, this->ProfundidadGlobal);
 
-                                Bfile.seekg(0, ios::end);
+                                int a = 0;
 
-                                Bfile.write((char *) &registro, sizeof(Empleado));
+                                for (int i = 0; i < this->ProfundidadGlobal; i++)
+                                {
+                                    cout <<"SE:" << endl << lecturaIndex[i] << endl;
+                                    if (temp2[i] == lecturaIndex[i]) {
+                                        a++;
+                                        continue;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                if(a == this->ProfundidadGlobal){
+                                    Bfile.seekg(0, ios::end);
+                                    Bfile.write((char *) &registro, sizeof(Empleado));
+                                }
+                                else{
 
-                            }
+                                    auto NuevoBucket = new Bucket();
 
-                            Bfile.close();
+                                    auto NombreBucket = NuevoBucket->GetBucketFileName();
 
-                            buckets.push_back(NuevoBucket);
-                        } else {
+                                    fstream Bfile;
+                                    Bfile.open(NombreBucket, ios::binary | ios::out);
 
-                            for (auto it2 = buckets.begin(); it2 != buckets.end(); it2++) {
+                                    if (Bfile.is_open()) {
 
 
-                                auto NombreBucket = (*it2)->GetBucketFileName();
+                                        Bfile.seekg( 8 + ( this->ProfundidadGlobal * sizeof(int) ) , ios::beg);
 
-                                fstream Bfile;
-                                Bfile.open(NombreBucket, ios::binary | ios::in | ios::out);
+                                        Bfile.write((char *) &temp2, sizeof(this->ProfundidadGlobal));
 
-                                if (Bfile.is_open()) {
+                                        Bfile.seekg(0, ios::end);
 
-                                    char lecturaIndex[ProfundidadGlobal];
+                                        Bfile.write((char *) &registro, sizeof(Empleado));
 
-                                    Bfile.seekg(0, ios::beg);
-
-                                    Bfile.seekg((*it2)->GetProfundidadLocal() * sizeof(int) +
-                                                sizeof(this->ProfundidadGlobal), ios::beg);
-
-                                    Bfile.read((char *) &lecturaIndex, sizeof(this->ProfundidadGlobal));
-
-                                    for (int i = 0; i < this->ProfundidadGlobal; i++) {
-                                        if (temp2[i] == lecturaIndex[i]) {
-
-                                            Bfile.seekg(0, ios::end);
-                                            Bfile.write((char *) &registro, sizeof(Empleado));
-
-                                        } else {
-                                            break;
-                                        }
                                     }
 
-                                    Bfile.seekg(0, ios::end);
-
                                     Bfile.close();
+                                    buckets.push_back(NuevoBucket);
 
                                 }
 
+                                Bfile.close();
 
                             }
 
-                        }
-                    } else {
-                        break;
-                    }
 
+                        }
+
+                    }
                 }
 
             }
@@ -750,107 +778,6 @@ public:
     }
 
 }
-
-
-    void split(){
-
-
-
-
-
-    }
-
-
-
-
-
-/*
-    void insert(int key,string valor,bool reinserted)
-    {
-        int bucket_no;
-        int status = buckets[bucket_no]->insert(key,valor);
-        if(status==1)
-        {
-            if(!reinserted)
-                cout<<"Inserted key "<<key<<" in bucket "<<bucket_id(bucket_no)<<endl;
-            else
-                cout<<"Moved key "<<key<<" to bucket "<<bucket_id(bucket_no)<<endl;
-        }
-        else if(status==0)
-        {
-            split(bucket_no);
-            insert(key,valor,reinserted);
-        }
-        else
-        {
-            cout<<"Key "<<key<<" already exists in bucket "<<bucket_id(bucket_no)<<endl;
-        }
-
-    };
-*/
-
-/*
-    void remove(int key,int mode){
-        int bucket_no = hash(key);
-        if(buckets[bucket_no]->remove(key))
-            cout<<"Deleted key "<<key<<" from bucket "<<bucket_id(bucket_no)<<endl;
-        if(mode>0)
-        {
-            if(buckets[bucket_no]->isEmpty() && buckets[bucket_no]->ObtenerProfundidadLocal()>1)
-                merge(bucket_no);
-        }
-        if(mode>1)
-        {
-            shrink();
-        }
-
-    };
-*/
-
-/*
-    void update(int key, string valor){
-
-        int bucket_no = hash(key);
-        buckets[bucket_no]->update(key,valor);
-
-    };
-*/
-
-
-/*
-    void search(int key){
-
-        int bucket_no = hash(key);
-        cout<<"Searching key "<<key<<" in bucket "<<bucket_id(bucket_no)<<endl;
-        buckets[bucket_no]->search(key);
-
-
-    };
-*/
-
-
-/*
-    void display(bool duplicates){
-        int i,j,d;
-        string s;
-        std::set<string> shown;
-        cout<<"Global depth : "<<ProfundidadGlobal<<endl;
-        for(i=0;i<buckets.size();i++)
-        {
-            d = buckets[i]->ObtenerProfundidadLocal();
-            s = bucket_id(i);
-            if(duplicates || shown.find(s)==shown.end())
-            {
-                shown.insert(s);
-                for(j=d;j<=ProfundidadGlobal;j++)
-                    cout<<" ";
-                cout<<s<<" => ";
-                buckets[i]->Print();
-            }
-        }
-
-    };
-*/
 
 
 };
